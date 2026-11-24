@@ -1,38 +1,18 @@
-version: "2"
 services:
-  haproxy1:
-    image: "mminks/haproxy-docker-logging"
+  haproxy:
+    image: haproxy:3.2
     volumes:
-      - ./haproxy:/usr/local/etc/haproxy/
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
-      - "3000:80"
-    networks:
-      - haproxy-example
+      - "3000:8080" # app
+      - "8404:8404" # stats page
 
   node1:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=node1
-    ports:
-      - "3001:3000"
-    networks:
-      - haproxy-example
-
+      - WHOAMI_NAME=node1
 
   node2:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=node2
-    ports:
-      - "3002:3000"
-    networks:
-      - haproxy-example
-
-
-networks:
-  haproxy-example:
-
+      - WHOAMI_NAME=node2

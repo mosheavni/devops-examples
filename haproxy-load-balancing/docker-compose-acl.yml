@@ -1,59 +1,28 @@
-version: "2"
 services:
-  haproxy1:
-    image: "mminks/haproxy-docker-logging"
+  haproxy:
+    image: haproxy:3.2
     volumes:
-      - ./haproxy/haproxy-acl.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./haproxy/haproxy-acl.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
-      - "3000:80"
-    networks:
-      - haproxy-example
+      - "3000:8080" # app
+      - "8404:8404" # stats page
 
   moti1:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=moti1
-    ports:
-      - "3001:3000"
-    networks:
-      - haproxy-example
+      - WHOAMI_NAME=moti1
 
   moti2:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=moti2
-    ports:
-      - "3002:3000"
-    networks:
-      - haproxy-example
-
+      - WHOAMI_NAME=moti2
 
   yossi1:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=yossi1
-    ports:
-      - "3003:3000"
-    networks:
-      - haproxy-example
+      - WHOAMI_NAME=yossi1
 
   yossi2:
-    image: naturalintmma/express:no-favicon
-    user: "node"
+    image: traefik/whoami:v1.11.0
     environment:
-      - NODE_ENV=production
-      - MESSAGE=yossi2
-    ports:
-      - "3004:3000"
-    networks:
-      - haproxy-example
-
-networks:
-  haproxy-example:
-
+      - WHOAMI_NAME=yossi2
