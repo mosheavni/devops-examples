@@ -1,0 +1,69 @@
+name: db-replication
+
+x-mysql: &mysql
+  image: mysql:8.0
+  environment:
+    MYSQL_ROOT_PASSWORD: lab
+  configs:
+    # client creds for root inside the container, so `docker exec <c> mysql ...` needs no -p
+    - source: root-my-cnf
+      target: /root/.my.cnf
+  healthcheck:
+    # over TCP on purpose: the image's first-boot temp server is socket-only,
+    # so this only passes once the real server is up
+    test: ["CMD", "mysql", "-h127.0.0.1", "-e", "SELECT 1"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
+x-mongo: &mongo
+  image: mongo:7
+  command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+  healthcheck:
+    test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
+configs:
+  root-my-cnf:
+    content: |
+      [client]
+      user=root
+      password=lab
+
+services:
+  # ---- MySQL: source (primary) -> replica, async GTID replication ----
+  mysql-primary:
+    <<: *mysql
+    container_name: mysql-primary
+    # every flag here maps 1:1 to a my.cnf line on a real server
+    command:
+      - --server-id=1 # must be unique per server in the topology
+      - --gtid-mode=ON # every transaction gets a global ID -> replicas can be repointed without binlog file/offset math
+      - --enforce-gtid-consistency=ON # required by gtid-mode
+      - --binlog-format=ROW # replicate row images, not SQL text (deterministic)
+      - --log-bin=binlog # write a binlog (8.0 default, explicit for clarity)
+
+  mysql-replica:
+    <<: *mysql
+    container_name: mysql-replica
+    command:
+      - --server-id=2
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-format=ROW
+      - --log-bin=binlog # the replica binlogs too -> after promotion it can have replicas of its own
+      # read_only / super_read_only are set by setup-replication.sh (SET PERSIST),
+      # because the image's first-boot init has to write to the replica.
+
+  # ---- MongoDB: 3-member replica set (3 voters -> majority is 2) ----
+  mongo1:
+    <<: *mongo
+    container_name: mongo1
+  mongo2:
+    <<: *mongo
+    container_name: mongo2
+  mongo3:
+    <<: *mongo
+    container_name: mongo3
