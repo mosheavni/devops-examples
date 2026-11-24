@@ -1,0 +1,12 @@
+services:
+  backend:
+    image: python:3.13-slim
+    command: python -u /app/server.py
+    volumes: [./backend:/app:ro, ./certs:/certs:ro]
+    ports: ["8443:8443"]
+
+  frontend:
+    image: python:3.13-slim
+    command: python -u /app/app.py
+    volumes: [./frontend:/app:ro, ./certs:/certs:ro]
+    ports: ["8080:8080"]
